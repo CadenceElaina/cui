@@ -1,0 +1,8 @@
+{
+  "name": "cui",
+  "description": "Window applications open at specified position and toggle pinning the app.",
+  "uuid": "cui@CadenceElaina.github.io",
+  "shell-version": [
+    "50"
+  ]
+}
