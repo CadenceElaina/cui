@@ -68,13 +68,13 @@ The preprocessor (the step that runs before compiling) pastes the entire header 
 
 Running `./ui hello world`:
 
-| expression | value |
-|---|---|
-| `argc` | `3` |
-| `argv[0]` | `"./ui"` |
-| `argv[1]` | `"hello"` |
-| `argv[2]` | `"world"` |
-| `argv[3]` | `NULL` |
+| expression | value     |
+| ---------- | --------- |
+| `argc`     | `3`       |
+| `argv[0]`  | `"./ui"`  |
+| `argv[1]`  | `"hello"` |
+| `argv[2]`  | `"world"` |
+| `argv[3]`  | `NULL`    |
 
 ui.c passes these to `g_application_run`, and GTK treats extra words as files to open. With `G_APPLICATION_DEFAULT_FLAGS` the app can't open files, so `./ui hello world` prints `This application can not open files.` and exits with status 1 without opening a window.
 
@@ -158,16 +158,52 @@ Above the `#define`, it doesn't exist. If the macro lives in a header, every fil
 
 ### Macro vs function vs variable
 
-| | Macro | Function | Variable |
-|---|---|---|---|
-| Exists at runtime? | No, just pasted text | Yes, real compiled code | Yes, real memory |
-| Has a type? | No | Yes, arguments are checked | Yes |
-| Takes memory / has an address? | No | Yes | Yes |
-| Can change? | No | n/a | Yes (unless `const`) |
-| Respects braces and scope? | No | Yes | Yes |
+|                                | Macro                | Function                   | Variable             |
+| ------------------------------ | -------------------- | -------------------------- | -------------------- |
+| Exists at runtime?             | No, just pasted text | Yes, real compiled code    | Yes, real memory     |
+| Has a type?                    | No                   | Yes, arguments are checked | Yes                  |
+| Takes memory / has an address? | No                   | Yes                        | Yes                  |
+| Can change?                    | No                   | n/a                        | Yes (unless `const`) |
+| Respects braces and scope?     | No                   | Yes                        | Yes                  |
 
 ### When people use each
 
 - Constants: modern C usually prefers `const int LIMIT = 10;` or an `enum`, since those have types and show up in a debugger. Macros are still common for this, especially in older code and headers.
 - Small reusable logic: a regular function, or `static inline` if speed matters (`inline` asks the compiler to paste the function body at each call site). You get type checking and no double evaluation. Double evaluation is the macro trap where an argument runs twice: `SQUARE(i++)` becomes `((i++) * (i++))`, which changes `i` twice in one expression. C calls that undefined behavior (the standard makes no promise about the result).
 - Macros: for things functions can't do, like GTK's casting checks, generating code, or `#ifdef` to compile different code on different systems.
+
+### Setting up gnome extension with C
+
+gnome-shell --version
+dnf provides /usr/libexec/mutter-devkit --- sudo dnf install mutter-devkit
+gnome-extensions create --interactive
+dbus-run-session gnome-shell --devkit --wayland
+gnome-extensions enable right-monitor@yourname
+journalctl -f -o cat /usr/bin/gnome-shell
+
+To move the extension to your C project folder
+mv ~/.local/share/gnome-shell/extensions/cui@CadenceElaina.github.io ~/dev/cui/extension
+
+symlink
+ln -s ~/dev/cui/extension ~/.local/share/gnome-shell/extensions/cui@CadenceElaina.github.io
+
+ls -l ~/.local/share/gnome-shell/extensions/ | grep cui
+
+                  What to look up (no answers, just signposts)
+
+Detecting new windows: signals on Meta.Display, which you reach via global.display.
+Identifying your window: Meta.Window methods for WM class or app ID. On Wayland your GTK app’s ID (com.yourname.MyApp) is the thing to match on, so log what the method actually returns before hardcoding a string.
+Finding monitors: methods on Meta.Display for monitor count and per-monitor geometry.
+Acting on the window: Meta.Window methods for moving to a monitor and making it “above.”
+Timing: the bug I mentioned earlier, where the window isn’t ready when it’s first created. Look at window.get_compositor_private() (returns the window’s actor) and what signals that actor emits.
+Cleanup: connect() returns an ID; disconnect(id) takes it.
+
+Extensions home: https://gjs.guide/extensions/
+Creating an extension: https://gjs.guide/extensions/development/creating.html
+Debugging, nested shell, Looking Glass: https://gjs.guide/extensions/development/debugging.html
+Extension lifecycle (enable/disable rules): https://gjs.guide/extensions/topics/extension.html
+Signals and GObject in GJS: https://gjs.guide/guides/gobject/basics.html
+Review guidelines (good habits even if you never publish): https://gjs.guide/extensions/review-guidelines/review-guidelines.html
+API reference for Meta, Shell, St, etc.: https://gjs-docs.gnome.org/ (match versions to your shell)
+GNOME Shell’s own JS source, great for real examples: https://gitlab.gnome.org/GNOME/gnome-shell/-/tree/main/js
+Example extensions with readable source: https://extensions.gnome.org (most link to GitHub/GitLab)
