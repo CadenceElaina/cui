@@ -2,7 +2,7 @@
 // Build and run: gcc ui.c -o ui $(pkg-config --cflags --libs gtk4) && ./ui
 #include <gtk/gtk.h> // pastes in GTK's declarations before compiling
 
-// Callback: GTK calls this when the app emits "activate" (wired up in main).
+// Callback: registered in main, called later by GLib when the app emits "activate".
 // static = only visible inside this file.
 static void
 activate(GtkApplication *app,
@@ -24,7 +24,7 @@ int main(int argc,
 
     app = gtk_application_new("org.gtk.example", G_APPLICATION_DEFAULT_FLAGS); // string is the application ID
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);             // on "activate", call activate(app, NULL)
-    status = g_application_run(G_APPLICATION(app), argc, argv);                // emits activate, runs the main loop, returns when the last window closes
+    status = g_application_run(G_APPLICATION(app), argc, argv);                // emits startup then activate, runs the main loop, returns when the last window closes
     g_object_unref(app);                                                       // drop our reference; app is freed when the count hits zero
 
     return status; // exit code for the OS
